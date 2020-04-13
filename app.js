@@ -9,7 +9,7 @@ const express = require('express');
 const morgan = require('morgan');
 const bcryptjs = require('bcryptjs');
 const auth = require('basic-auth');
-const db = require('./db');
+
 
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
@@ -92,8 +92,8 @@ app.post('/api/users', asyncHandler(async (req, res) => {
 
   try {
     user = await User.create(req.body);
+    res.location('/');
     res.status(201).json(user);
-    res.redirect('/');
 
   } catch (error) {
     if (error.name === "SequelizeValidationError") {
@@ -146,8 +146,8 @@ app.post('/api/courses', authenticateUser, asyncHandler(async (req, res) => {
 
   try {
     course = await Course.create(req.body);
+    res.location('/api/courses/' + course.id);
     res.status(201).json(course);
-    res.redirect('/api/courses/' + course.id)
   } catch (error) {
     if (error.name === "SequelizeValidationError") {
       const err = error.errors.map( error => error.message);
@@ -195,7 +195,6 @@ app.delete('/api/courses/:id', authenticateUser, asyncHandler(async (req, res, n
   if (course) {
     await course.destroy();
     res.status(204).end();
-    // res.redirect('/books');
   } else {
     res.status('404');
     next();
