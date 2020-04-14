@@ -9,6 +9,9 @@ const express = require('express');
 const morgan = require('morgan');
 const bcryptjs = require('bcryptjs');
 const auth = require('basic-auth');
+const checkModule = require('express-validator/check');
+const check = checkModule.check;
+const validationResult = checkModule.validationResult;
 
 
 // variable to enable global error logging
@@ -159,7 +162,15 @@ app.post('/api/courses', authenticateUser, asyncHandler(async (req, res) => {
 }));
 
 //PUT New Info For A Course
-app.put('/api/courses/:id', authenticateUser, asyncHandler(async (req, res, next) => {
+const titleValidationChain = check('title')
+.exists({ checkNull: true, checkFalsy: true})
+.withMessage('Please provide a title')
+const descValidationChain = check('description')
+.exists({ checkNull: true, checkFalsy: true})
+.withMessage('Please provide a description')
+app.put('/api/courses/:id', authenticateUser, titleValidationChain, descValidationChain, asyncHandler(async (req, res, next) => {
+  const errors = validationResult(req);
+
   let course; 
 
   try {
@@ -170,6 +181,11 @@ app.put('/api/courses/:id', authenticateUser, asyncHandler(async (req, res, next
         }
       ],
     });
+
+    if (!errors.isEmpty()) {
+      const errorMessages = errors.array().map(error => error.msg)
+      res.status(400).json({errors: errorMessages})
+    } else {
     if (course) {
       await course.update(req.body);
       res.status(204).end();
@@ -177,6 +193,8 @@ app.put('/api/courses/:id', authenticateUser, asyncHandler(async (req, res, next
       res.status('404');
       next();
     } 
+  }
+
   } catch (error) {
     if (error.name === "SequelizeValidationError") {
       const err = error.errors.map( error => error.message);
